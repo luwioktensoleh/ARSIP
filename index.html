@@ -203,7 +203,7 @@ function openForm(title,type,id=null,row=null){
   currentType=type;currentId=id;currentTable=type;
   $("formTitle").textContent=title;
   const F=[];
-  if(type==="surat_masuk")F.push(field("nomor","Nomor Surat",row?.nomor||row?.nomor_surat),field("pengirim","Pengirim",row?.pengirim),field("tanggal","Tanggal","", "date",row?.tanggal),field("perihal","Perihal",row?.perihal),selectField("status","Status",["Diterima","Diproses","Selesai"],row?.status||"Diterima"),`<label>Foto / File Surat</label><input id="f_file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><span class="muted">${esc(row?.file_name ? "File saat ini: "+row.file_name+" (pilih file baru jika ingin mengganti)" : "Boleh JPG, PNG, WEBP atau PDF, maksimal 10 MB.")}</span>`);
+  if(type==="surat_masuk")F.push(field("nomor","Nomor Surat",row?.nomor||row?.nomor_surat),field("pengirim","Pengirim",row?.pengirim),field("tanggal","Tanggal","", "date",row?.tanggal),field("perihal","Perihal",row?.perihal),selectField("status","Status",["Diterima","Diproses","Selesai"],row?.status||"Diterima"),`<label>Foto / File Surat</label><input id="f_file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><span class="muted">${esc(row?.file_name ? "File saat ini: "+row.file_name+" (pilih file baru untuk mengganti)" : "JPG, PNG, WEBP atau PDF — maksimal 10 MB.")}</span>`);
   if(type==="surat_keluar")F.push(field("nomor","Nomor Surat",row?.nomor),field("tujuan","Tujuan",row?.tujuan),field("tanggal","Tanggal","", "date",row?.tanggal),field("perihal","Perihal",row?.perihal),selectField("status","Status",["Draft","Terkirim","Selesai"],row?.status||"Draft"));
   if(type==="arsip")F.push(field("nama_dokumen","Nama Dokumen",row?.nama_dokumen),field("kategori","Kategori",row?.kategori),field("tahun","Tahun",row?.tahun,"number"),field("format","Format",row?.format||"PDF"));
   if(type==="pegawai")F.push(field("nama","Nama",row?.nama),field("nip","NIP",row?.nip),field("jabatan","Jabatan",row?.jabatan),selectField("status","Status",["Aktif","Nonaktif"],row?.status||"Aktif"));
@@ -229,13 +229,13 @@ function collect(type){
   if(type==="alokasi_dana_desa")return {tahun:Number($("f_tahun").value||0),kecamatan:$("f_kecamatan").value.trim(),desa:$("f_desa").value.trim(),pagu_add:Number($("f_pagu_add").value||0),realisasi:Number($("f_realisasi").value||0),keterangan:$("f_keterangan").value.trim()};
 }
 
-async function uploadSuratMasukFile(file,userId){
+async function uploadSuratFile(file,userId){
   if(!file)return null;
   const allowed=["image/jpeg","image/png","image/webp","application/pdf"];
   if(!allowed.includes(file.type))throw new Error("File harus JPG, PNG, WEBP, atau PDF.");
   if(file.size>10*1024*1024)throw new Error("Ukuran file maksimal 10 MB.");
   const ext=(file.name.split(".").pop()||"bin").toLowerCase();
-  const path=`${userId}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+  const path=userId+"/"+Date.now()+"_"+crypto.randomUUID()+"."+ext;
   const {error}=await sb.storage.from("surat-masuk").upload(path,file,{upsert:false,contentType:file.type});
   if(error)throw error;
   return {path,name:file.name,type:file.type};
@@ -243,7 +243,7 @@ async function uploadSuratMasukFile(file,userId){
 
 async function saveForm(){
   const btn=$("formSave");btn.disabled=true;btn.textContent="Menyimpan...";
-  let uploadedPath=null;
+  let uploaded=null;
   try{
     const data=collect(currentType);
     const required=currentType==="surat_masuk"?["nomor","pengirim","tanggal","perihal"]:currentType==="surat_keluar"?["nomor","tujuan","tanggal","perihal"]:currentType==="arsip"?["nama_dokumen","tahun"]:currentType==="pegawai"?["nama","jabatan"]:["tahun","kecamatan","desa"];
@@ -253,94 +253,38 @@ async function saveForm(){
     if(currentType==="surat_masuk"){
       const {data:ud}=await sb.auth.getUser();
       if(!ud?.user)throw new Error("Sesi login tidak ditemukan.");
-      const fileEl=$("f_file");
-      const file=fileEl?.files?.[0];
+      const file=$("f_file")?.files?.[0];
       if(file){
-        const uploaded=await uploadSuratMasukFile(file,ud.user.id);
-        uploadedPath=uploaded.path;
+        uploaded=await uploadSuratFile(file,ud.user.id);
         data.file_path=uploaded.path;
         data.file_name=uploaded.name;
         data.file_type=uploaded.type;
       }
     }
 
-    if(currentId){
-      await api(currentTable,"PATCH","id=eq."+encodeURIComponent(currentId),data);
-    }else{
-      await api(currentTable,"POST","",data);
-    }
+    if(currentId)await api(currentTable,"PATCH","id=eq."+encodeURIComponent(currentId),data);
+    else await api(currentTable,"POST","",data);
 
     closeForm();await refreshAll();alert("Data berhasil disimpan.");
   }catch(e){
-    if(uploadedPath){try{await sb.storage.from("surat-masuk").remove([uploadedPath]);}catch(_){}}
+    if(uploaded){try{await sb.storage.from("surat-masuk").remove([uploaded.path]);}catch(_){}}
     alert("Gagal menyimpan:\n"+e.message);console.error(e);
   }finally{btn.disabled=false;btn.textContent="Simpan";}
 }
 
 
-function detail(title,fields){
-  $("detailTitle").textContent=title;
-  $("detailBody").innerHTML=fields.map(([a,b])=>`<div><b>${esc(a)}</b></div><div>${esc(b)}</div>`).join("");
-  $("detailModal").classList.add("show");
-}
+function detail(title,fields){$("detailTitle").textContent=title;$("detailBody").innerHTML=fields.map(([a,b])=>`<div><b>${esc(a)}</b></div><div>${esc(b)}</div>`).join("");$("detailModal").classList.add("show");}
 function closeDetail(){$("detailModal").classList.remove("show");}
-
-async function viewSuratFile(path,name,type){
-  if(!path){alert("Surat ini belum mempunyai file.");return}
-  try{
-    const {data,error}=await sb.storage.from("surat-masuk").createSignedUrl(path,3600);
-    if(error)throw error;
-    if((type||"").startsWith("image/")){
-      $("detailTitle").textContent=name||"Foto Surat";
-      $("detailBody").innerHTML=`<div style="grid-column:1/-1;text-align:center"><img src="${data.signedUrl}" alt="${esc(name||"Foto Surat")}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:8px"></div>`;
-      $("detailModal").classList.add("show");
-    }else{
-      window.open(data.signedUrl,"_blank","noopener");
-    }
-  }catch(e){alert("File tidak bisa dibuka: "+e.message)}
+function lihatSuratMasuk(row){
+  detail("Detail Surat Masuk",[
+    ["Nomor Surat",row.nomor||row.nomor_surat],
+    ["Pengirim",row.pengirim],
+    ["Tanggal",row.tanggal],
+    ["Perihal",row.perihal],
+    ["Status",row.status||"Diterima"],
+    ["File",row.file_name||"Belum ada file"]
+  ]);
 }
-
-async function lihatSuratMasuk(row){
-  $("detailTitle").textContent="Detail Surat Masuk";
-  let fileHtml="";
-  if(row.file_path){
-    try{
-      const {data,error}=await sb.storage.from("surat-masuk").createSignedUrl(row.file_path,3600);
-      if(!error && data?.signedUrl){
-        if((row.file_type||"").startsWith("image/")){
-          fileHtml=`<div style="grid-column:1/-1;text-align:center;margin-top:8px"><img src="${data.signedUrl}" alt="${esc(row.file_name||"Surat")}" style="max-width:100%;max-height:55vh;object-fit:contain;border:1px solid #ddd;border-radius:8px"></div>`;
-        }else{
-          fileHtml=`<div style="grid-column:1/-1;margin-top:8px"><a href="${data.signedUrl}" target="_blank" rel="noopener"><button>Lihat PDF</button></a></div>`;
-        }
-      }
-    }catch(e){console.error(e)}
-  }
-  $("detailBody").innerHTML=[
-    `<div><b>Nomor Surat</b></div><div>${esc(row.nomor||row.nomor_surat)}</div>`,
-    `<div><b>Pengirim</b></div><div>${esc(row.pengirim)}</div>`,
-    `<div><b>Tanggal</b></div><div>${esc(row.tanggal)}</div>`,
-    `<div><b>Perihal</b></div><div>${esc(row.perihal)}</div>`,
-    `<div><b>Status</b></div><div>${esc(row.status||"Diterima")}</div>`,
-    `<div><b>File</b></div><div>${esc(row.file_name||"Belum ada file")}</div>`,
-    fileHtml
-  ].join("");
-  $("detailModal").classList.add("show");
-}
-
-async function deleteSuratFile(id,path){
-  if(!path){alert("Surat ini tidak mempunyai file.");return}
-  if(!confirm("Hapus file surat ini? Data surat tetap disimpan."))return;
-  try{
-    const {error}=await sb.storage.from("surat-masuk").remove([path]);
-    if(error)throw error;
-    const {error:rpcError}=await sb.rpc("clear_surat_masuk_file",{p_id:id});
-    if(rpcError)throw rpcError;
-    await loadMasuk();
-    closeDetail();
-    alert("File surat berhasil dihapus.");
-  }catch(e){alert("Gagal menghapus file: "+e.message)}
-}
-
 
 async function removeRow(table,id){if(currentProfile?.role!=="admin"){alert("Hanya Admin yang dapat menghapus data.");return}if(!confirm("Hapus data ini?"))return;try{await api(table,"DELETE","id=eq."+encodeURIComponent(id));await refreshAll();}catch(e){alert("Gagal menghapus:\n"+e.message)}}
 function editRow(table,id,row){if(currentProfile?.role!=="admin"){alert("Hanya Admin yang dapat mengubah data.");return}openForm("Edit Data",table,id,row)}
@@ -357,21 +301,39 @@ async function loadMasuk(){
         ? `<button class="btn2" onclick="viewSuratFile(decodeURIComponent('${encodeURIComponent(x.file_path)}'),decodeURIComponent('${encodeURIComponent(x.file_name||"Surat")}'),decodeURIComponent('${encodeURIComponent(x.file_type||"")}'))">Lihat File</button>
            <button class="btn-danger" onclick="deleteSuratFile('${x.id}',decodeURIComponent('${encodeURIComponent(x.file_path)}'))">Hapus File</button>`
         : `<span class="muted">Belum ada</span>`;
-      return `<tr>
-        <td>${i+1}</td>
-        <td>${esc(x.nomor||x.nomor_surat)}</td>
-        <td>${esc(x.pengirim)}</td>
-        <td>${esc(x.tanggal)}</td>
-        <td>${esc(x.perihal)}</td>
-        <td><span class="badge ${x.status==="Diterima"?"green":"yellow"}">${esc(x.status||"Diterima")}</span></td>
-        <td>${file}</td>
-        <td class="actions"><button class="btn2" onclick="lihatSuratMasuk(JSON.parse(decodeURIComponent('${data}')))">Lihat</button>
-        <button class="btn2" onclick='editRow("surat_masuk","${x.id}",${JSON.stringify(x)})'>Edit</button>
-        <button class="btn-danger" onclick='removeRow("surat_masuk","${x.id}")'>Hapus</button></td>
-      </tr>`;
+      return `<tr><td>${i+1}</td><td>${esc(x.nomor||x.nomor_surat)}</td><td>${esc(x.pengirim)}</td><td>${esc(x.tanggal)}</td><td>${esc(x.perihal)}</td><td><span class="badge ${x.status==="Diterima"?"green":"yellow"}">${esc(x.status||"Diterima")}</span></td><td>${file}</td><td class="actions"><button class="btn2" onclick="lihatSuratMasuk(JSON.parse(decodeURIComponent('${data}')))">Lihat</button><button class="btn2" onclick='editRow("surat_masuk","${x.id}",${JSON.stringify(x)})'>Edit</button><button class="btn-danger" onclick='removeRow("surat_masuk","${x.id}")'>Hapus</button></td></tr>`;
     }).join("");
     $("countMasuk").textContent=rows.length;
   }catch(e){console.error(e)}
+}
+
+async function viewSuratFile(path,name,type){
+  if(!path){alert("Surat ini belum mempunyai file.");return}
+  try{
+    const {data,error}=await sb.storage.from("surat-masuk").createSignedUrl(path,3600);
+    if(error)throw error;
+    if((type||"").startsWith("image/")){
+      $("detailTitle").textContent=name||"Foto Surat";
+      $("detailBody").innerHTML=`<div style="grid-column:1/-1;text-align:center"><img src="${data.signedUrl}" alt="${esc(name||"Foto Surat")}" style="max-width:100%;max-height:65vh;object-fit:contain;border:1px solid #ddd;border-radius:8px"></div>`;
+      $("detailModal").classList.add("show");
+    }else{
+      window.open(data.signedUrl,"_blank","noopener");
+    }
+  }catch(e){alert("File tidak bisa dibuka: "+e.message)}
+}
+
+async function deleteSuratFile(id,path){
+  if(!path){alert("Surat ini tidak mempunyai file.");return}
+  if(!confirm("Hapus file surat ini? Data surat tetap disimpan."))return;
+  try{
+    const {error}=await sb.storage.from("surat-masuk").remove([path]);
+    if(error)throw error;
+    const {error:clearError}=await sb.rpc("clear_surat_masuk_file",{p_id:Number(id)});
+    if(clearError)throw clearError;
+    await loadMasuk();
+    closeDetail();
+    alert("File surat berhasil dihapus.");
+  }catch(e){alert("Gagal menghapus file: "+e.message)}
 }
 
 async function loadKeluar(){try{const rows=await api("surat_keluar","GET","select=*&order=tanggal.desc");const b=document.querySelector("#tableKeluar tbody");b.innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.nomor)}</td><td>${esc(x.tujuan)}</td><td>${esc(x.tanggal)}</td><td>${esc(x.perihal)}</td><td><span class="badge ${x.status==="Terkirim"?"green":"yellow"}">${esc(x.status||"Draft")}</span></td><td class="actions"><button class="btn2" onclick='detail("Detail Surat Keluar",[["Nomor Surat","${esc(x.nomor)}"],["Tujuan","${esc(x.tujuan)}"],["Tanggal","${esc(x.tanggal)}"],["Perihal","${esc(x.perihal)}"],["Status","${esc(x.status||"Draft")}"]])'>Lihat</button><button class="btn2" onclick='editRow("surat_keluar","${x.id}",${JSON.stringify(x)})'>Edit</button><button class="btn-danger" onclick='removeRow("surat_keluar","${x.id}")'>Hapus</button></td></tr>`).join("");$("countKeluar").textContent=rows.length}catch(e){console.error(e)}}
@@ -380,4 +342,11 @@ async function loadPegawai(){try{const rows=await api("pegawai","GET","select=*&
 async function loadADDData(){try{const rows=await api("alokasi_dana_desa","GET","select=*&order=tahun.desc,kecamatan,desa");const b=document.querySelector("#tableADD tbody");b.innerHTML=rows.map(x=>{const s=Number(x.pagu_add||0)-Number(x.realisasi||0);return `<tr><td>${esc(x.tahun)}</td><td>${esc(x.kecamatan)}</td><td>${esc(x.desa)}</td><td>${money(x.pagu_add)}</td><td>${money(x.realisasi)}</td><td>${money(s)}</td><td>${esc(x.keterangan)}</td><td class="actions"><button class="btn2" onclick='editRow("alokasi_dana_desa","${x.id}",${JSON.stringify(x)})'>Edit</button><button class="btn-danger" onclick='removeRow("alokasi_dana_desa","${x.id}")'>Hapus</button></td></tr>`}).join("");$("countADD").textContent=rows.length}catch(e){console.error(e)}}
 async function loadUsers(){if(currentProfile?.role!=="admin")return;try{const rows=await api("profiles","GET","select=*&order=created_at.desc");const b=document.querySelector("#tableUsers tbody");b.innerHTML=rows.map(x=>`<tr><td>${esc(x.nama)}</td><td>${esc(x.username)}</td><td>${x.role==="admin"?"Admin":"Peserta"}</td><td>${esc((x.created_at||"").slice(0,10))}</td></tr>`).join("")}catch(e){console.error(e)}}
 
-function printTable(id,title){const table=$(id);const w=window.open("","_blank");w.document.write("<html><head><title>"+title+"</title><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:7px;text-align:left}</style></head><body><h2>"+title+"</h2>"+table.outerHTML+"</body></html>
+function printTable(id,title){const table=$(id);const w=window.open("","_blank");w.document.write("<html><head><title>"+title+"</title><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:7px;text-align:left}</style></head><body><h2>"+title+"</h2>"+table.outerHTML+"</body></html>");w.document.close();w.print();}
+
+window.addEventListener("load",async()=>{
+  if(SUPABASE_KEY==="ISI_PUBLISHABLE_KEY_KAMU_DI_SINI"){alert("Publishable Key Supabase belum diisi di index.html.");return}
+  const {data}=await sb.auth.getSession();if(data.session)await enterApp(data.session.user);
+});
+</script>
+</body></html>
