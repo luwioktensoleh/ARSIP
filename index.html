@@ -264,4 +264,46 @@ window.addEventListener("load",async()=>{
   const {data}=await sb.auth.getSession();if(data.session)await enterApp(data.session.user);
 });
 </script>
-</body></html>
+</body></html
+function esc(v){
+  return String(v ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function openDetail(title, fields){
+  $("detailTitle").textContent = title;
+  $("detailContent").innerHTML = fields.map(([k,v]) =>
+    `<div><b>${esc(k)}</b><br>${esc(v || "-")}</div>`
+  ).join('<hr style="border:0;border-top:1px solid #eee;margin:8px 0">');
+  $("detailModal").classList.add("show");
+}
+function closeDetail(){ $("detailModal").classList.remove("show"); }
+
+function lihatSuratMasuk(x){
+  openDetail("Detail Surat Masuk", [
+    ["Nomor Surat", x.nomor],
+    ["Pengirim", x.pengirim],
+    ["Tanggal", x.tanggal],
+    ["Perihal", x.perihal],
+    ["Status", x.status]
+  ]);
+}
+function lihatSuratKeluar(x){
+  openDetail("Detail Surat Keluar", [
+    ["Nomor Surat", x.nomor],
+    ["Tujuan", x.tujuan],
+    ["Tanggal", x.tanggal],
+    ["Perihal", x.perihal],
+    ["Status", x.status]
+  ]);
+}
+function lihatArsip(x){
+  openDetail("Detail Arsip Dokumen", [
+    ["Nama Dokumen", x.nama_dokumen],
+    ["Kategori", x.kategori],
+    ["Tahun", x.tahun],
+    ["Format", x.format]
+  ]);
+}
+
+>
