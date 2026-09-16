@@ -14,7 +14,7 @@ input,select{width:100%;padding:12px;border:1px solid #d5dce5;border-radius:9px;
 button{border:0;border-radius:9px;padding:11px 17px;background:#0b5cab;color:#fff;cursor:pointer;font-weight:600}
 button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#0b3564;color:white;padding:24px 15px}
 .brand{font-size:21px;font-weight:bold;padding:0 12px 28px}.brand small{display:block;font-size:11px;font-weight:normal;opacity:.7;margin-top:4px}
-.admin-only{display:none}.menu{padding:11px 14px;margin:5px 0;border-radius:8px;cursor:pointer;color:#dce9f8}.menu:hover,.menu.active{background:#1769b0;color:white}
+.admin-only{display:none}.admin-only{display:none}.menu{padding:11px 14px;margin:5px 0;border-radius:8px;cursor:pointer;color:#dce9f8}.menu:hover,.menu.active{background:#1769b0;color:white}
 .main{margin-left:245px}.top{height:72px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 30px}
 .content{padding:28px}.page{display:none}.page.active{display:block}.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.title h2{margin:0}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}.card{background:white;border-radius:13px;padding:20px;box-shadow:0 3px 12px #102a430d}.card .num{font-size:28px;font-weight:bold;margin-top:8px}.muted{color:#6b7280;font-size:13px}
@@ -30,16 +30,19 @@ button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;b
 <div class="login-box">
 <div class="logo">A</div><h1>APSIP</h1><p>Aplikasi Pengelolaan Sistem Informasi Persuratan</p>
 <div id="authLogin">
-<input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
+<input id="loginEmail" type="email" placeholder="Email">
+<input id="loginPassword" type="password" placeholder="Password">
 <button style="width:100%" onclick="login()">Masuk ke Sistem</button>
+<p id="authMsg" style="font-size:12px;margin-top:12px;color:#c53030"></p>
 <p style="font-size:12px;margin-top:18px">Belum punya akun? <a href="#" onclick="showRegister();return false">Registrasi</a></p>
 </div>
 <div id="authRegister" style="display:none">
 <input id="regNama" placeholder="Nama lengkap">
 <input id="regUsername" placeholder="Username">
-<input id="regPassword" type="password" placeholder="Password">
+<input id="regEmail" type="email" placeholder="Email aktif">
+<input id="regPassword" type="password" placeholder="Password (min. 6 karakter)">
 <button style="width:100%" onclick="registerUser()">Daftar</button>
+<p id="regMsg" style="font-size:12px;margin-top:12px;color:#c53030"></p>
 <p style="font-size:12px;margin-top:18px">Sudah punya akun? <a href="#" onclick="showLogin();return false">Kembali ke Login</a></p>
 </div>
 </div></div>
@@ -104,6 +107,7 @@ button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;b
 <table id="tableUsers"><thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Aksi</th></tr></thead><tbody id="bodyUsers"></tbody></table>
 </div>
 </div>
+
 <div class="page" id="laporan"><div class="title"><h2>Laporan</h2></div><div class="cards">
 <div class="card"><b>Laporan Surat Masuk</b><p class="muted">Rekap surat masuk berdasarkan periode.</p><button onclick="alert('Fitur cetak laporan demo')">Cetak Laporan</button></div>
 <div class="card"><b>Laporan Surat Keluar</b><p class="muted">Rekap surat keluar berdasarkan periode.</p><button onclick="alert('Fitur cetak laporan demo')">Cetak Laporan</button></div>
@@ -113,96 +117,165 @@ button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;b
 
 <div class="modal" id="modal"><div class="modalbox"><h3 id="modalTitle">Tambah Data</h3><input placeholder="Nomor / Nama Dokumen"><input placeholder="Perihal / Keterangan"><input type="date"><div style="text-align:right"><button class="btn2" onclick="closeModal()">Batal</button> <button onclick="saveDemo()">Simpan</button></div></div></div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-function getUsers(){
-  try{return JSON.parse(localStorage.getItem("apsip_users")||"[]")}catch(e){return []}
-}
-function saveUsers(users){localStorage.setItem("apsip_users",JSON.stringify(users))}
-function ensureAdmin(){
-  const users=getUsers();
-  if(!users.some(u=>u.username==="admin")){
-    users.push({nama:"Administrator",username:"admin",password:"admin123",role:"admin"});
-    saveUsers(users);
-  }
+const SUPABASE_URL = "https://olntporrajhaibzbzxyc.supabase.co";
+const SUPABASE_KEY = "ISI_PUBLISHABLE_KEY_KAMU_DI_SINI";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function setMsg(id, text, ok=false){
+  const el=document.getElementById(id);
+  if(el){el.textContent=text; el.style.color=ok?"#16803c":"#c53030";}
 }
 function showRegister(){
   document.getElementById("authLogin").style.display="none";
   document.getElementById("authRegister").style.display="block";
+  setMsg("authMsg","");
 }
 function showLogin(){
   document.getElementById("authRegister").style.display="none";
   document.getElementById("authLogin").style.display="block";
+  setMsg("regMsg","");
 }
-function login(){
-  ensureAdmin();
-  const username=document.getElementById("username").value.trim();
-  const password=document.getElementById("password").value;
-  const user=getUsers().find(u=>u.username===username && u.password===password);
-  if(!user){alert("Username atau password salah.");return;}
-  localStorage.setItem("apsip_current_user",JSON.stringify(user));
-  enterApp(user);
-}
-function registerUser(){
+async function registerUser(){
   const nama=document.getElementById("regNama").value.trim();
   const username=document.getElementById("regUsername").value.trim();
+  const email=document.getElementById("regEmail").value.trim();
   const password=document.getElementById("regPassword").value;
-  if(!nama||!username||!password){alert("Nama, username, dan password wajib diisi.");return;}
-  if(username.toLowerCase()==="admin"){alert("Username admin tidak dapat didaftarkan.");return;}
-  const users=getUsers();
-  if(users.some(u=>u.username.toLowerCase()===username.toLowerCase())){alert("Username sudah digunakan.");return;}
-  users.push({nama,username,password,role:"peserta"});
-  saveUsers(users);
-  alert("Registrasi berhasil. Silakan login.");
-  showLogin();
+  if(!nama||!username||!email||!password){setMsg("regMsg","Semua kolom wajib diisi.");return;}
+  if(password.length<6){setMsg("regMsg","Password minimal 6 karakter.");return;}
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email,password,
+      options:{data:{nama,username}}
+    });
+    if(error) throw error;
+    if(data.session){
+      setMsg("regMsg","Registrasi berhasil. Akun kamu dibuat sebagai Peserta.",true);
+      await enterApp(data.session.user);
+    }else{
+      setMsg("regMsg","Registrasi berhasil. Cek email untuk verifikasi, lalu login.",true);
+    }
+  }catch(e){setMsg("regMsg",e.message||"Registrasi gagal.");}
 }
-function enterApp(user){
+async function login(){
+  const email=document.getElementById("loginEmail").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  if(!email||!password){setMsg("authMsg","Email dan password wajib diisi.");return;}
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error) throw error;
+    await enterApp(data.user);
+  }catch(e){setMsg("authMsg",e.message||"Email atau password salah.");}
+}
+async function enterApp(user){
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
-  document.getElementById("currentUser").textContent="👤 "+user.nama+" ("+(user.role==="admin"?"Admin":"Peserta")+")";
-  document.querySelectorAll(".admin-only").forEach(el=>el.style.display=user.role==="admin"?"block":"none");
-  if(user.role!=="admin" && document.getElementById("users").classList.contains("active")) showPage("dashboard",document.querySelector(".menu"));
+  let profile=null;
+  const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if(!error) profile=data;
+  const nama=profile?.nama || user.user_metadata?.nama || user.email;
+  const role=profile?.role || "peserta";
+  document.getElementById("currentUser").textContent="👤 "+nama+" ("+(role==="admin"?"Admin":"Peserta")+")";
+  document.querySelectorAll(".admin-only").forEach(x=>x.style.display=role==="admin"?"block":"none");
   if(typeof loadADD==="function") loadADD();
+  if(typeof loadUsers==="function" && role==="admin") loadUsers();
 }
-function logout(){
-  localStorage.removeItem("apsip_current_user");
+async function logout(){
+  await sb.auth.signOut();
   document.getElementById("app").style.display="none";
   document.getElementById("login").style.display="flex";
+  document.getElementById("loginEmail").value="";
+  document.getElementById("loginPassword").value="";
   showLogin();
 }
-function loadCurrentUser(){
-  ensureAdmin();
-  try{
-    const u=JSON.parse(localStorage.getItem("apsip_current_user")||"null");
-    if(u) enterApp(u);
-  }catch(e){}
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  const page=document.getElementById(id);
+  if(page) page.classList.add('active');
+  document.querySelectorAll('.menu').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('pageTitle').textContent=el?el.textContent.trim().replace(/^[^\w]+/,''):id;
 }
-{document.getElementById('app').style.display='none';document.getElementById('login').style.display='flex'}
-function showPage(id,el){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.menu').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('pageTitle').textContent=el.textContent.trim().replace(/^[^\w]+/,'')}
 function openModal(t){document.getElementById('modalTitle').textContent='Tambah '+t;document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
-function saveDemo(){alert('Data berhasil disimpan (mode demo).');closeModal()}
-function filterTable(input,id){let q=input.value.toLowerCase();document.querySelectorAll('#'+id+' tr').forEach((r,i)=>{if(i>0)r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})}
-
-
-async function loadUsers(){
-  const body=document.getElementById("bodyUsers");
-  if(!body)return;
-  const users=getUsers();
-  body.innerHTML=users.map((u,i)=>`<tr><td>${u.nama}</td><td>${u.username}</td><td>${u.role==="admin"?"Admin":"Peserta"}</td><td>${u.role==="admin"?"—":`<button class="btn-danger" onclick="deleteUser(${i})">Hapus</button>`}</td></tr>`).join("");
+function saveDemo(){alert('Modul ini belum dihubungkan ke database pada tahap ini.');closeModal()}
+function filterTable(input,id){
+  let q=input.value.toLowerCase();
+  document.querySelectorAll('#'+id+' tr').forEach((r,i)=>{if(i>0)r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})
 }
-function deleteUser(i){
-  const users=getUsers();
-  if(users[i] && users[i].role==="admin")return;
-  if(confirm("Hapus pengguna ini?")){
-    users.splice(i,1); saveUsers(users); loadUsers();
+
+async function getMyProfile(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user)return null;
+  const {data}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  return data;
+}
+async function loadUsers(){
+  const b=document.getElementById("bodyUsers"); if(!b)return;
+  const p=await getMyProfile(); if(p?.role!=="admin")return;
+  const {data,error}=await sb.from("profiles").select("*").order("created_at",{ascending:false});
+  if(error){b.innerHTML='<tr><td colspan="4">Gagal memuat pengguna.</td></tr>';return;}
+  b.innerHTML=(data||[]).map(x=>`<tr><td>${x.nama||""}</td><td>${x.username||""}</td><td>${x.role==="admin"?"Admin":"Peserta"}</td><td>—</td></tr>`).join("");
+}
+
+async function loadADD(){
+  try{
+    const {data:rows,error}=await sb.from("alokasi_dana_desa").select("*").order("tahun",{ascending:false}).order("kecamatan").order("desa");
+    if(error) throw error;
+    const b=document.getElementById("bodyADD"); if(!b)return;
+    b.innerHTML="";
+    (rows||[]).forEach(x=>{
+      const s=Number(x.pagu_add||0)-Number(x.realisasi||0);
+      b.innerHTML+=`<tr><td>${x.tahun||""}</td><td>${x.kecamatan||""}</td><td>${x.desa||""}</td>
+      <td>Rp ${Number(x.pagu_add||0).toLocaleString("id-ID")}</td>
+      <td>Rp ${Number(x.realisasi||0).toLocaleString("id-ID")}</td>
+      <td>Rp ${s.toLocaleString("id-ID")}</td><td>${x.keterangan||""}</td>
+      <td class="actions"><button class="btn2" onclick='editADD(${JSON.stringify(x)})'>Edit</button>
+      <button class="btn-danger" onclick="deleteADD('${x.id}')">Hapus</button></td></tr>`;
+    });
+    const c=document.getElementById("countADD"); if(c)c.textContent=(rows||[]).length;
+  }catch(e){
+    console.error(e);
+    const b=document.getElementById("bodyADD"); if(b)b.innerHTML='<tr><td colspan="8">Tabel ADD belum tersedia atau belum diberi izin Supabase.</td></tr>';
   }
 }
+function openADDModal(){
+  addModalTitle.textContent="Tambah Alokasi Dana Desa"; addId.value=""; addTahun.value=2026;
+  addKecamatan.value=""; addDesa.value=""; addPagu.value=""; addRealisasi.value=""; addKeterangan.value="";
+  modalADD.classList.add("show");
+}
+function closeADDModal(){modalADD.classList.remove("show")}
+function editADD(x){
+  addModalTitle.textContent="Edit Alokasi Dana Desa"; addId.value=x.id||""; addTahun.value=x.tahun||2026;
+  addKecamatan.value=x.kecamatan||""; addDesa.value=x.desa||""; addPagu.value=x.pagu_add||0;
+  addRealisasi.value=x.realisasi||0; addKeterangan.value=x.keterangan||""; modalADD.classList.add("show");
+}
+async function saveADD(){
+  const p={tahun:Number(addTahun.value),kecamatan:addKecamatan.value.trim(),desa:addDesa.value.trim(),
+    pagu_add:Number(addPagu.value||0),realisasi:Number(addRealisasi.value||0),keterangan:addKeterangan.value.trim()};
+  if(!p.kecamatan||!p.desa){alert("Kecamatan dan Desa wajib diisi.");return}
+  if(p.realisasi>p.pagu_add){alert("Realisasi tidak boleh lebih besar dari Pagu ADD.");return}
+  try{
+    let q;
+    if(addId.value) q=await sb.from("alokasi_dana_desa").update(p).eq("id",addId.value);
+    else q=await sb.from("alokasi_dana_desa").insert(p);
+    if(q.error)throw q.error;
+    closeADDModal(); await loadADD(); alert("Data ADD berhasil disimpan.");
+  }catch(e){alert("Gagal menyimpan ADD: "+(e.message||"periksa tabel/RLS Supabase."));}
+}
+async function deleteADD(id){
+  if(!confirm("Hapus data ADD ini?"))return;
+  const {error}=await sb.from("alokasi_dana_desa").delete().eq("id",id);
+  if(error)alert("Gagal menghapus ADD: "+error.message); else loadADD();
+}
 
-async function loadADD(){try{const rows=await api("alokasi_dana_desa?select=*&order=tahun.desc,kecamatan,desa");const body=document.getElementById("bodyADD");body.innerHTML="";rows.forEach(x=>{const s=Number(x.pagu_add||0)-Number(x.realisasi||0);body.innerHTML+=`<tr><td>${x.tahun||""}</td><td>${x.kecamatan||""}</td><td>${x.desa||""}</td><td>Rp ${Number(x.pagu_add||0).toLocaleString("id-ID")}</td><td>Rp ${Number(x.realisasi||0).toLocaleString("id-ID")}</td><td>Rp ${s.toLocaleString("id-ID")}</td><td>${x.keterangan||""}</td><td class="actions"><button class="btn2" onclick='editADD(${JSON.stringify(x)})'>Edit</button><button class="btn-danger" onclick="deleteADD('${x.id}')">Hapus</button></td></tr>`});const c=document.getElementById("countADD");if(c)c.textContent=rows.length}catch(e){console.error("ADD:",e)}}
-function openADDModal(){document.getElementById("addModalTitle").textContent="Tambah Alokasi Dana Desa";document.getElementById("addId").value="";["addKecamatan","addDesa","addPagu","addRealisasi","addKeterangan"].forEach(id=>document.getElementById(id).value="");document.getElementById("addTahun").value="2026";document.getElementById("modalADD").classList.add("show")}
-function closeADDModal(){document.getElementById("modalADD").classList.remove("show")}
-function editADD(x){document.getElementById("addModalTitle").textContent="Edit Alokasi Dana Desa";document.getElementById("addId").value=x.id||"";document.getElementById("addTahun").value=x.tahun||2026;document.getElementById("addKecamatan").value=x.kecamatan||"";document.getElementById("addDesa").value=x.desa||"";document.getElementById("addPagu").value=x.pagu_add||0;document.getElementById("addRealisasi").value=x.realisasi||0;document.getElementById("addKeterangan").value=x.keterangan||"";document.getElementById("modalADD").classList.add("show")}
-async function saveADD(){const payload={tahun:Number(document.getElementById("addTahun").value),kecamatan:document.getElementById("addKecamatan").value.trim(),desa:document.getElementById("addDesa").value.trim(),pagu_add:Number(document.getElementById("addPagu").value||0),realisasi:Number(document.getElementById("addRealisasi").value||0),keterangan:document.getElementById("addKeterangan").value.trim()};if(!payload.kecamatan||!payload.desa){alert("Kecamatan dan Desa wajib diisi.");return}try{const id=document.getElementById("addId").value;if(id)await api("alokasi_dana_desa?id=eq."+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify(payload)});else await api("alokasi_dana_desa",{method:"POST",body:JSON.stringify(payload)});closeADDModal();await loadADD();alert("Data ADD berhasil disimpan.")}catch(e){alert("Gagal menyimpan ADD. Periksa tabel/policy Supabase.");console.error(e)}}
-async function deleteADD(id){if(!confirm("Hapus data ADD ini?"))return;try{await api("alokasi_dana_desa?id=eq."+encodeURIComponent(id),{method:"DELETE"});await loadADD()}catch(e){alert("Gagal menghapus data ADD.");console.error(e)}}
-</script>
-<script>window.addEventListener("load",()=>{if(typeof loadADD==="function")loadADD()});</script></body></html>
+window.addEventListener("load",async()=>{
+  if(SUPABASE_KEY==="ISI_PUBLISHABLE_KEY_KAMU_DI_SINI"){
+    console.warn("Isi SUPABASE_KEY dengan Publishable Key Supabase.");
+  }
+  const {data}=await sb.auth.getSession();
+  if(data.session) await enterApp(data.session.user);
+});
+</script></body></html>
