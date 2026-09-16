@@ -127,164 +127,387 @@ button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;b
 </div></div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script>
 const SUPABASE_URL = "https://olntporrajhaibzbzxyc.supabase.co";
 const SUPABASE_KEY = "ISI_PUBLISHABLE_KEY_KAMU_DI_SINI";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function msg(id,text,ok=false){
-  const e=document.getElementById(id);
-  if(e){e.textContent=text;e.style.color=ok?"#16803c":"#c53030";}
-}
-function showRegister(){document.getElementById("authLogin").style.display="none";document.getElementById("authRegister").style.display="block";msg("authMsg","");}
-function showLogin(){document.getElementById("authRegister").style.display="none";document.getElementById("authLogin").style.display="block";msg("regMsg","");}
+const $ = (id) => document.getElementById(id);
 
-async function registerUser(){
-  const nama=regNama.value.trim(), username=regUsername.value.trim(), email=regEmail.value.trim(), password=regPassword.value;
-  if(!nama||!username||!email||!password){msg("regMsg","Semua kolom wajib diisi.");return;}
-  if(password.length<6){msg("regMsg","Password minimal 6 karakter.");return;}
-  try{
-    const exists=await sb.from("profiles").select("id").eq("username",username).maybeSingle();
-    if(exists.data){msg("regMsg","Username sudah digunakan.");return;}
-    const {data,error}=await sb.auth.signUp({email,password,options:{data:{nama,username}}});
-    if(error)throw error;
-    if(data.user){
-      // Profile is created after the user exists; role is always peserta here.
-      if(data.session){
-        await sb.from("profiles").upsert({id:data.user.id,nama,username,role:"peserta"});
-        msg("regMsg","Registrasi berhasil. Silakan masuk.",true);
-        showLogin();
-      }else{
-        msg("regMsg","Registrasi berhasil. Cek email verifikasi, lalu login.",true);
-      }
-    }
-  }catch(e){msg("regMsg",e.message||"Registrasi gagal.");}
-}
-
-async function login(){
-  const email=loginEmail.value.trim(), password=loginPassword.value;
-  if(!email||!password){msg("authMsg","Email dan password wajib diisi.");return;}
-  try{
-    const {data,error}=await sb.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    await enterApp(data.user);
-  }catch(e){msg("authMsg",e.message||"Email atau password salah.");}
-}
-
-async function enterApp(user){
-  document.getElementById("login").style.display="none";
-  document.getElementById("app").style.display="block";
-  let {data:profile}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
-  if(!profile){
-    const nama=user.user_metadata?.nama||user.email;
-    const username=user.user_metadata?.username||user.email.split("@")[0];
-    const ins=await sb.from("profiles").insert({id:user.id,nama,username,role:"peserta"}).select().single();
-    profile=ins.data;
+function showMsg(id, text, ok=false) {
+  const el = $(id);
+  if (el) {
+    el.textContent = text;
+    el.style.color = ok ? "#16803c" : "#c53030";
   }
-  const nama=profile?.nama||user.email;
-  const role=profile?.role||"peserta";
-  document.getElementById("currentUser").textContent="👤 "+nama+" ("+(role==="admin"?"Admin":"Peserta")+")";
-  document.querySelectorAll(".admin-only").forEach(x=>x.style.display=role==="admin"?"block":"none");
+}
+
+function showRegister() {
+  $("authLogin").style.display = "none";
+  $("authRegister").style.display = "block";
+  showMsg("authMsg", "");
+}
+
+function showLogin() {
+  $("authRegister").style.display = "none";
+  $("authLogin").style.display = "block";
+  showMsg("regMsg", "");
+}
+
+async function registerUser() {
+  const nama = $("regNama").value.trim();
+  const username = $("regUsername").value.trim();
+  const email = $("regEmail").value.trim();
+  const password = $("regPassword").value;
+
+  if (!nama || !username || !email || !password) {
+    showMsg("regMsg", "Semua kolom wajib diisi.");
+    return;
+  }
+  if (password.length < 6) {
+    showMsg("regMsg", "Password minimal 6 karakter.");
+    return;
+  }
+
+  try {
+    const check = await dbRequest("profiles?select=id&username=eq." + encodeURIComponent(username) + "&limit=1", {
+      method: "GET"
+    });
+    if (check.length) {
+      showMsg("regMsg", "Username sudah digunakan.");
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: { data: { nama, username } }
+    });
+    if (error) throw error;
+
+    if (data.user && data.session) {
+      // Try profile creation. If RLS blocks this, the user can still exist in Auth.
+      await dbRequest("profiles", {
+        method: "POST",
+        body: JSON.stringify({
+          id: data.user.id,
+          nama,
+          username,
+          role: "peserta"
+        })
+      });
+      showLogin();
+      showMsg("authMsg", "Registrasi berhasil. Silakan login.", true);
+    } else {
+      showMsg("regMsg", "Registrasi berhasil. Cek email verifikasi lalu login.", true);
+    }
+  } catch (e) {
+    showMsg("regMsg", e.message || "Registrasi gagal.");
+  }
+}
+
+async function login() {
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+
+  if (!email || !password) {
+    showMsg("authMsg", "Email dan password wajib diisi.");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    await enterApp(data.user);
+  } catch (e) {
+    showMsg("authMsg", e.message || "Email atau password salah.");
+  }
+}
+
+async function enterApp(user) {
+  $("login").style.display = "none";
+  $("app").style.display = "block";
+
+  let profile = null;
+  try {
+    const rows = await dbRequest("profiles?select=*&id=eq." + encodeURIComponent(user.id) + "&limit=1");
+    profile = rows[0] || null;
+  } catch (e) {
+    console.error("Profile:", e);
+  }
+
+  const nama = profile?.nama || user.user_metadata?.nama || user.email;
+  const role = profile?.role || "peserta";
+
+  $("currentUser").textContent = "👤 " + nama + " (" + (role === "admin" ? "Admin" : "Peserta") + ")";
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = role === "admin" ? "block" : "none";
+  });
+
   loadADD();
   loadSuratMasuk();
-  if(role==="admin")loadUsers();
+  if (role === "admin") loadUsers();
 }
-async function logout(){
-  await sb.auth.signOut();
-  document.getElementById("app").style.display="none";
-  document.getElementById("login").style.display="flex";
-  loginEmail.value="";loginPassword.value="";
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  $("app").style.display = "none";
+  $("login").style.display = "flex";
+  $("loginEmail").value = "";
+  $("loginPassword").value = "";
   showLogin();
 }
-function showPage(id,el){
-  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-  const p=document.getElementById(id);if(p)p.classList.add("active");
-  document.querySelectorAll(".menu").forEach(x=>x.classList.remove("active"));
-  if(el)el.classList.add("active");
-  document.getElementById("pageTitle").textContent=el?el.textContent.trim().replace(/^[^\w]+/,""):id;
-}
-function openModal(t){
-  document.getElementById("modalTitle").textContent="Tambah "+t;
-  if(t==="Surat Masuk"){
-    smNomor.value="";smPengirim.value="";smTanggal.value=new Date().toISOString().slice(0,10);
-    smPerihal.value="";smStatus.value="Diterima";
-  }
-  document.getElementById("modal").classList.add("show");
-}
-function closeModal(){document.getElementById("modal").classList.remove("show")}
-function filterTable(input,id){const q=input.value.toLowerCase();document.querySelectorAll("#"+id+" tr").forEach((r,i)=>{if(i>0)r.style.display=r.textContent.toLowerCase().includes(q)?"":"none"})}
 
-async function saveSuratMasuk(){
-  const p={
-    nomor_surat:smNomor.value.trim(),
-    pengirim:smPengirim.value.trim(),
-    tanggal:smTanggal.value,
-    perihal:smPerihal.value.trim(),
-    status:smStatus.value
-  };
-  if(!p.nomor_surat||!p.pengirim||!p.tanggal||!p.perihal){
-    alert("Nomor surat, pengirim, tanggal, dan perihal wajib diisi.");
-    return;
-  }
-  const {error}=await sb.from("surat_masuk").insert(p);
-  if(error){
-    alert("Gagal menyimpan Surat Masuk: "+error.message);
-    console.error(error);
-    return;
-  }
-  closeModal();
-  await loadSuratMasuk();
-  alert("Surat Masuk berhasil disimpan.");
-}
-async function loadSuratMasuk(){
-  const table=document.getElementById("tableMasuk");
-  if(!table)return;
-  const {data,error}=await sb.from("surat_masuk").select("*").order("tanggal",{ascending:false});
-  if(error){console.error(error);return;}
-  let body=table.querySelector("tbody");
-  if(!body){
-    body=document.createElement("tbody");
-    table.appendChild(body);
-  }
-  body.innerHTML=(data||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.nomor_surat||""}</td><td>${x.pengirim||""}</td><td>${x.tanggal||""}</td><td>${x.perihal||""}</td><td><span class="badge ${x.status==="Diterima"?"green":"yellow"}">${x.status||"Diterima"}</span></td><td><button class="btn2">Lihat</button></td></tr>`).join("");
-  const c=document.getElementById("countMasuk");if(c)c.textContent=(data||[]).length;
+function showPage(id, el) {
+  document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
+  const page = $(id);
+  if (page) page.classList.add("active");
+  document.querySelectorAll(".menu").forEach(x => x.classList.remove("active"));
+  if (el) el.classList.add("active");
+  $("pageTitle").textContent = el ? el.textContent.trim().replace(/^[^\w]+/, "") : id;
 }
 
-async function loadUsers(){
-  const b=document.getElementById("bodyUsers");if(!b)return;
-  const {data,error}=await sb.from("profiles").select("*").order("created_at",{ascending:false});
-  if(error){b.innerHTML='<tr><td colspan="4">Gagal memuat pengguna.</td></tr>';return;}
-  b.innerHTML=(data||[]).map(x=>`<tr><td>${x.nama||""}</td><td>${x.username||""}</td><td>${x.role==="admin"?"Admin":"Peserta"}</td><td>—</td></tr>`).join("");
+function openModal(type) {
+  $("modalTitle").textContent = "Tambah " + type;
+  if (type === "Surat Masuk") {
+    $("smNomor").value = "";
+    $("smPengirim").value = "";
+    $("smTanggal").value = new Date().toISOString().slice(0, 10);
+    $("smPerihal").value = "";
+    $("smStatus").value = "Diterima";
+  }
+  $("modal").classList.add("show");
 }
 
-async function loadADD(){
-  const b=document.getElementById("bodyADD");if(!b)return;
-  const {data,error}=await sb.from("alokasi_dana_desa").select("*").order("tahun",{ascending:false}).order("kecamatan").order("desa");
-  if(error){b.innerHTML='<tr><td colspan="8">Data ADD belum tersedia di Supabase.</td></tr>';return;}
-  b.innerHTML="";
-  (data||[]).forEach(x=>{
-    const s=Number(x.pagu_add||0)-Number(x.realisasi||0);
-    b.innerHTML+=`<tr><td>${x.tahun||""}</td><td>${x.kecamatan||""}</td><td>${x.desa||""}</td><td>Rp ${Number(x.pagu_add||0).toLocaleString("id-ID")}</td><td>Rp ${Number(x.realisasi||0).toLocaleString("id-ID")}</td><td>Rp ${s.toLocaleString("id-ID")}</td><td>${x.keterangan||""}</td><td class="actions"><button class="btn2" onclick='editADD(${JSON.stringify(x)})'>Edit</button><button class="btn-danger" onclick="deleteADD('${x.id}')">Hapus</button></td></tr>`;
+function closeModal() {
+  $("modal").classList.remove("show");
+}
+
+function filterTable(input, id) {
+  const q = input.value.toLowerCase();
+  document.querySelectorAll("#" + id + " tr").forEach((row, i) => {
+    if (i > 0) row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
   });
-  const c=document.getElementById("countADD");if(c)c.textContent=(data||[]).length;
 }
-function openADDModal(){addModalTitle.textContent="Tambah Alokasi Dana Desa";addId.value="";addTahun.value=2026;addKecamatan.value="";addDesa.value="";addPagu.value="";addRealisasi.value="";addKeterangan.value="";modalADD.classList.add("show")}
-function closeADDModal(){modalADD.classList.remove("show")}
-function editADD(x){addModalTitle.textContent="Edit Alokasi Dana Desa";addId.value=x.id||"";addTahun.value=x.tahun||2026;addKecamatan.value=x.kecamatan||"";addDesa.value=x.desa||"";addPagu.value=x.pagu_add||0;addRealisasi.value=x.realisasi||0;addKeterangan.value=x.keterangan||"";modalADD.classList.add("show")}
-async function saveADD(){
-  const p={tahun:Number(addTahun.value),kecamatan:addKecamatan.value.trim(),desa:addDesa.value.trim(),pagu_add:Number(addPagu.value||0),realisasi:Number(addRealisasi.value||0),keterangan:addKeterangan.value.trim()};
-  if(!p.kecamatan||!p.desa){alert("Kecamatan dan Desa wajib diisi.");return}
-  if(p.realisasi>p.pagu_add){alert("Realisasi tidak boleh lebih besar dari Pagu ADD.");return}
-  let q=addId.value?await sb.from("alokasi_dana_desa").update(p).eq("id",addId.value):await sb.from("alokasi_dana_desa").insert(p);
-  if(q.error){alert("Gagal menyimpan ADD: "+q.error.message);return}
-  closeADDModal();await loadADD();alert("Data ADD berhasil disimpan.");
-}
-async function deleteADD(id){if(!confirm("Hapus data ADD ini?"))return;const {error}=await sb.from("alokasi_dana_desa").delete().eq("id",id);if(error)alert("Gagal menghapus ADD: "+error.message);else loadADD();}
 
-window.addEventListener("load",async()=>{
-  const {data}=await sb.auth.getSession();
-  if(data.session)await enterApp(data.session.user);
+/* REST helper for public Supabase data API */
+function restHeaders() {
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+}
+
+async function dbRequest(path, options={}) {
+  const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    ...options,
+    headers: { ...restHeaders(), ...(options.headers || {}) }
+  });
+  const text = await response.text();
+  let payload = [];
+  try { payload = text ? JSON.parse(text) : []; } catch (_) { payload = text; }
+  if (!response.ok) {
+    const message = typeof payload === "string" ? payload : (payload.message || JSON.stringify(payload));
+    throw new Error(message);
+  }
+  return payload;
+}
+
+/* Surat Masuk */
+async function saveSuratMasuk() {
+  const btn = document.querySelector('#modal button[onclick="saveSuratMasuk()"]');
+  if (btn) { btn.disabled = true; btn.textContent = "Menyimpan..."; }
+
+  try {
+    const record = {
+      nomor_surat: $("smNomor").value.trim(),
+      pengirim: $("smPengirim").value.trim(),
+      tanggal: $("smTanggal").value,
+      perihal: $("smPerihal").value.trim(),
+      status: $("smStatus").value
+    };
+
+    if (!record.nomor_surat || !record.pengirim || !record.tanggal || !record.perihal) {
+      alert("Nomor surat, pengirim, tanggal, dan perihal wajib diisi.");
+      return;
+    }
+
+    await dbRequest("surat_masuk", {
+      method: "POST",
+      body: JSON.stringify(record)
+    });
+
+    closeModal();
+    await loadSuratMasuk();
+    alert("Surat Masuk berhasil disimpan.");
+  } catch (e) {
+    console.error(e);
+    alert("Gagal menyimpan Surat Masuk:\n" + (e.message || "Periksa tabel dan RLS Supabase."));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Simpan"; }
+  }
+}
+
+async function loadSuratMasuk() {
+  const table = $("tableMasuk");
+  if (!table) return;
+
+  try {
+    const rows = await dbRequest("surat_masuk?select=*&order=tanggal.desc");
+    let body = table.querySelector("tbody");
+    if (!body) {
+      body = document.createElement("tbody");
+      table.appendChild(body);
+    }
+
+    body.innerHTML = (rows || []).map((x, i) => {
+      const status = x.status || "Diterima";
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${x.nomor_surat || ""}</td>
+        <td>${x.pengirim || ""}</td>
+        <td>${x.tanggal || ""}</td>
+        <td>${x.perihal || ""}</td>
+        <td><span class="badge ${status === "Diterima" ? "green" : "yellow"}">${status}</span></td>
+        <td><button class="btn2">Lihat</button></td>
+      </tr>`;
+    }).join("");
+
+    if ($("countMasuk")) $("countMasuk").textContent = rows.length;
+  } catch (e) {
+    console.error("Load Surat Masuk:", e);
+  }
+}
+
+/* ADD */
+async function loadADD() {
+  const body = $("bodyADD");
+  if (!body) return;
+
+  try {
+    const rows = await dbRequest("alokasi_dana_desa?select=*&order=tahun.desc,kecamatan,desa");
+    body.innerHTML = (rows || []).map(x => {
+      const sisa = Number(x.pagu_add || 0) - Number(x.realisasi || 0);
+      return `<tr>
+        <td>${x.tahun || ""}</td>
+        <td>${x.kecamatan || ""}</td>
+        <td>${x.desa || ""}</td>
+        <td>Rp ${Number(x.pagu_add || 0).toLocaleString("id-ID")}</td>
+        <td>Rp ${Number(x.realisasi || 0).toLocaleString("id-ID")}</td>
+        <td>Rp ${sisa.toLocaleString("id-ID")}</td>
+        <td>${x.keterangan || ""}</td>
+        <td class="actions">
+          <button class="btn2" onclick='editADD(${JSON.stringify(x)})'>Edit</button>
+          <button class="btn-danger" onclick="deleteADD('${x.id}')">Hapus</button>
+        </td>
+      </tr>`;
+    }).join("");
+    if ($("countADD")) $("countADD").textContent = rows.length;
+  } catch (e) {
+    console.error("Load ADD:", e);
+  }
+}
+
+function openADDModal() {
+  $("addModalTitle").textContent = "Tambah Alokasi Dana Desa";
+  $("addId").value = "";
+  $("addTahun").value = 2026;
+  $("addKecamatan").value = "";
+  $("addDesa").value = "";
+  $("addPagu").value = "";
+  $("addRealisasi").value = "";
+  $("addKeterangan").value = "";
+  $("modalADD").classList.add("show");
+}
+
+function closeADDModal() {
+  $("modalADD").classList.remove("show");
+}
+
+function editADD(x) {
+  $("addModalTitle").textContent = "Edit Alokasi Dana Desa";
+  $("addId").value = x.id || "";
+  $("addTahun").value = x.tahun || 2026;
+  $("addKecamatan").value = x.kecamatan || "";
+  $("addDesa").value = x.desa || "";
+  $("addPagu").value = x.pagu_add || 0;
+  $("addRealisasi").value = x.realisasi || 0;
+  $("addKeterangan").value = x.keterangan || "";
+  $("modalADD").classList.add("show");
+}
+
+async function saveADD() {
+  const record = {
+    tahun: Number($("addTahun").value),
+    kecamatan: $("addKecamatan").value.trim(),
+    desa: $("addDesa").value.trim(),
+    pagu_add: Number($("addPagu").value || 0),
+    realisasi: Number($("addRealisasi").value || 0),
+    keterangan: $("addKeterangan").value.trim()
+  };
+
+  if (!record.kecamatan || !record.desa) {
+    alert("Kecamatan dan Desa wajib diisi.");
+    return;
+  }
+  if (record.realisasi > record.pagu_add) {
+    alert("Realisasi tidak boleh lebih besar dari Pagu ADD.");
+    return;
+  }
+
+  try {
+    const path = $("addId").value
+      ? "alokasi_dana_desa?id=eq." + encodeURIComponent($("addId").value)
+      : "alokasi_dana_desa";
+
+    await dbRequest(path, {
+      method: $("addId").value ? "PATCH" : "POST",
+      body: JSON.stringify(record)
+    });
+
+    closeADDModal();
+    await loadADD();
+    alert("Data ADD berhasil disimpan.");
+  } catch (e) {
+    alert("Gagal menyimpan ADD:\n" + (e.message || "Periksa tabel/RLS Supabase."));
+  }
+}
+
+async function deleteADD(id) {
+  if (!confirm("Hapus data ADD ini?")) return;
+  try {
+    await dbRequest("alokasi_dana_desa?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+    await loadADD();
+  } catch (e) {
+    alert("Gagal menghapus ADD:\n" + (e.message || ""));
+  }
+}
+
+/* Users */
+async function loadUsers() {
+  const body = $("bodyUsers");
+  if (!body) return;
+  try {
+    const rows = await dbRequest("profiles?select=*&order=created_at.desc");
+    body.innerHTML = (rows || []).map(x =>
+      `<tr><td>${x.nama || ""}</td><td>${x.username || ""}</td><td>${x.role === "admin" ? "Admin" : "Peserta"}</td><td>—</td></tr>`
+    ).join("");
+  } catch (e) {
+    console.error("Load users:", e);
+    body.innerHTML = '<tr><td colspan="4">Data pengguna belum dapat dimuat.</td></tr>';
+  }
+}
+
+window.addEventListener("load", async () => {
+  if (SUPABASE_KEY === "ISI_PUBLISHABLE_KEY_KAMU_DI_SINI") {
+    alert("Publishable Key Supabase belum diisi di index.html.");
+    return;
+  }
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) await enterApp(data.session.user);
 });
 </script>
 </html>
