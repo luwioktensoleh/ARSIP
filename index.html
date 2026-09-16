@@ -287,7 +287,7 @@ function lihatSuratMasuk(row){
 }
 
 async function removeRow(table,id){if(currentProfile?.role!=="admin"){alert("Hanya Admin yang dapat menghapus data.");return}if(!confirm("Hapus data ini?"))return;try{await api(table,"DELETE","id=eq."+encodeURIComponent(id));await refreshAll();}catch(e){alert("Gagal menghapus:\n"+e.message)}}
-function editRow(table,id,row){if(currentProfile?.role!=="admin"){alert("Hanya Admin yang dapat mengubah data.");return}openForm("Edit Data",table,id,row)}
+function editRow(table,id,row){openForm("Edit Data",table,id,row)}
 
 function filterTable(input,id){const q=input.value.toLowerCase();document.querySelectorAll("#"+id+" tbody tr").forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?"":"none");}
 
