@@ -2,104 +2,123 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APSIP - Aplikasi Pengelolaan Sistem Informasi Persuratan</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APSIP • PINTAS BPKAD</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#1f2937}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b5cab,#123b70)}
-.login-box{width:390px;background:white;border-radius:18px;padding:34px;box-shadow:0 20px 50px #0004;text-align:center}
-.logo{width:70px;height:70px;border-radius:16px;background:#0b5cab;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;margin:auto auto 15px}
-.login h1{margin:8px 0 5px}.login p{color:#6b7280;margin-bottom:25px}
-input,select{width:100%;padding:12px;border:1px solid #d5dce5;border-radius:9px;margin:7px 0 13px;font-size:14px}
-button{border:0;border-radius:9px;padding:11px 17px;background:#0b5cab;color:#fff;cursor:pointer;font-weight:600}
-button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#0b3564;color:white;padding:24px 15px}
-.brand{font-size:21px;font-weight:bold;padding:0 12px 28px}.brand small{display:block;font-size:11px;font-weight:normal;opacity:.7;margin-top:4px}
-.menu{padding:11px 14px;margin:5px 0;border-radius:8px;cursor:pointer;color:#dce9f8}.menu:hover,.menu.active{background:#1769b0;color:white}
-.main{margin-left:245px}.top{height:72px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 30px}
-.content{padding:28px}.page{display:none}.page.active{display:block}.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.title h2{margin:0}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}.card{background:white;border-radius:13px;padding:20px;box-shadow:0 3px 12px #102a430d}.card .num{font-size:28px;font-weight:bold;margin-top:8px}.muted{color:#6b7280;font-size:13px}
-.tablebox{background:white;border-radius:13px;padding:20px;overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #edf0f4;font-size:13px}th{background:#f8fafc}
-.badge{padding:5px 9px;border-radius:20px;font-size:11px;background:#e8f2ff;color:#0b5cab}.green{background:#e9f8ef;color:#16803c}.yellow{background:#fff6df;color:#9a6800}
-.actions{display:flex;gap:8px}.btn2{background:#eef4fb;color:#0b5cab}.btn-danger{background:#feecec;color:#c53030}
-.search{max-width:300px}.modal{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center}.modal.show{display:flex}.modalbox{background:white;width:500px;max-width:94%;padding:25px;border-radius:15px}.modalbox h3{margin-top:0}
-@media(max-width:850px){.sidebar{width:70px}.brand{font-size:0}.brand small{display:none}.menu{font-size:0;text-align:center}.menu::first-letter{font-size:20px}.main{margin-left:70px}.cards{grid-template-columns:repeat(2,1fr)}}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033}
+header{background:linear-gradient(135deg,#073b74,#0a5ca8);color:white;padding:22px 28px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:24px;font-weight:800}.sub{font-size:13px;opacity:.85;margin-top:4px}
+.wrap{max-width:1250px;margin:24px auto;padding:0 18px}
+.notice{background:#fff8df;border:1px solid #ead27b;padding:14px 16px;border-radius:12px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.card{background:white;border-radius:14px;padding:18px;box-shadow:0 4px 16px #13294b12}
+.label{font-size:13px;color:#667085}.num{font-size:30px;font-weight:800;margin-top:8px}
+.tabs{display:flex;gap:8px;margin:22px 0;flex-wrap:wrap}.tabs button{background:white;color:#174a7e;border:1px solid #d5dfeb}.tabs button.active{background:#0b5cab;color:#fff}
+button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:600;background:#0b5cab;color:white}
+button.danger{background:#b42318}button.secondary{background:#e9eef5;color:#23354d}
+.panel{background:white;border-radius:14px;padding:20px;box-shadow:0 4px 16px #13294b12}
+.form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.full{grid-column:1/-1}
+input,select{width:100%;padding:11px;border:1px solid #ccd6e2;border-radius:9px;font:inherit}
+table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:11px;border-bottom:1px solid #e8edf3;text-align:left;font-size:13px}th{background:#f7f9fc}
+.status{padding:5px 9px;border-radius:999px;background:#eef5ff;color:#174a7e;font-size:12px}
+.hidden{display:none}.topline{display:flex;justify-content:space-between;align-items:center;gap:10px}.muted{color:#667085;font-size:13px}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="login" id="login">
-<div class="login-box">
-<div class="logo">A</div><h1>APSIP</h1><p>Aplikasi Pengelolaan Sistem Informasi Persuratan</p>
-<input id="username" placeholder="Username" value="admin">
-<input id="password" type="password" placeholder="Password" value="admin123">
-<button style="width:100%" onclick="login()">Masuk ke Sistem</button>
-<p style="font-size:12px;margin-top:18px">Demo: admin / admin123</p>
-</div></div>
+<header><div><div class="brand">APSIP</div><div class="sub">Aplikasi Pengelolaan Sistem Informasi Persuratan • PINTAS BPKAD</div></div><div id="connection">● Menghubungkan...</div></header>
+<div class="wrap">
+<div class="notice"><b>Versi Online Database</b><br><span class="muted">Data disimpan di Supabase. Setelah konfigurasi URL dan Publishable Key, website ini dapat diakses melalui GitHub Pages.</span></div>
 
-<div class="app" id="app">
-<aside class="sidebar">
-<div class="brand">APSIP <small>Sistem Informasi Persuratan & Arsip</small></div>
-<div class="menu active" onclick="showPage('dashboard',this)">🏠 &nbsp; Dashboard</div>
-<div class="menu" onclick="showPage('masuk',this)">📥 &nbsp; Surat Masuk</div>
-<div class="menu" onclick="showPage('keluar',this)">📤 &nbsp; Surat Keluar</div>
-<div class="menu" onclick="showPage('arsip',this)">📁 &nbsp; Arsip Dokumen</div>
-<div class="menu" onclick="showPage('pegawai',this)">👥 &nbsp; Data Pegawai</div>
-<div class="menu" onclick="showPage('laporan',this)">📊 &nbsp; Laporan</div>
-<div class="menu" onclick="logout()" style="margin-top:25px">🚪 &nbsp; Keluar</div>
-</aside>
-<main class="main">
-<header class="top"><b id="pageTitle">Dashboard</b><span>👤 Admin</span></header>
-<section class="content">
-
-<div class="page active" id="dashboard">
-<div class="title"><div><h2>Dashboard</h2><span class="muted">Ringkasan data APSIP</span></div></div>
-<div class="cards">
-<div class="card">📥 Surat Masuk<div class="num" id="countMasuk">24</div><span class="muted">Dokumen tercatat</span></div>
-<div class="card">📤 Surat Keluar<div class="num" id="countKeluar">18</div><span class="muted">Dokumen tercatat</span></div>
-<div class="card">📁 Arsip<div class="num">42</div><span class="muted">Dokumen tersimpan</span></div>
-<div class="card">👥 Pegawai<div class="num">16</div><span class="muted">Pengguna/pegawai</span></div>
-</div><br>
-<div class="tablebox"><h3>Aktivitas Terbaru</h3><table><tr><th>Tanggal</th><th>Aktivitas</th><th>Status</th></tr>
-<tr><td>16 Sep 2026</td><td>Surat masuk baru ditambahkan</td><td><span class="badge green">Selesai</span></td></tr>
-<tr><td>16 Sep 2026</td><td>Arsip dokumen diperbarui</td><td><span class="badge">Diproses</span></td></tr>
-<tr><td>15 Sep 2026</td><td>Surat keluar dibuat</td><td><span class="badge green">Selesai</span></td></tr></table></div>
+<div class="grid">
+<div class="card"><div class="label">Surat Masuk</div><div class="num" id="countMasuk">-</div></div>
+<div class="card"><div class="label">Surat Keluar</div><div class="num" id="countKeluar">-</div></div>
+<div class="card"><div class="label">Arsip</div><div class="num" id="countArsip">-</div></div>
+<div class="card"><div class="label">Pegawai</div><div class="num" id="countPegawai">-</div></div>
 </div>
 
-<div class="page" id="masuk"><div class="title"><h2>Surat Masuk</h2><button onclick="openModal('Surat Masuk')">+ Tambah Surat</button></div>
-<div class="tablebox"><input class="search" onkeyup="filterTable(this,'tableMasuk')" placeholder="🔍 Cari surat..."><table id="tableMasuk"><tr><th>No</th><th>Nomor Surat</th><th>Pengirim</th><th>Tanggal</th><th>Perihal</th><th>Status</th><th>Aksi</th></tr>
-<tr><td>1</td><td>001/SM/2026</td><td>BPKAD Provinsi</td><td>16-09-2026</td><td>Undangan Rapat</td><td><span class="badge green">Diterima</span></td><td class="actions"><button class="btn2">Lihat</button></td></tr>
-<tr><td>2</td><td>017/SM/2026</td><td>Kecamatan</td><td>15-09-2026</td><td>Permohonan Data</td><td><span class="badge yellow">Diproses</span></td><td><button class="btn2">Lihat</button></td></tr></table></div></div>
+<div class="tabs">
+<button class="active" onclick="showTab('masuk',this)">📥 Surat Masuk</button>
+<button onclick="showTab('keluar',this)">📤 Surat Keluar</button>
+<button onclick="showTab('arsip',this)">📁 Arsip</button>
+<button onclick="showTab('pegawai',this)">👥 Pegawai</button>
+</div>
 
-<div class="page" id="keluar"><div class="title"><h2>Surat Keluar</h2><button onclick="openModal('Surat Keluar')">+ Buat Surat</button></div>
-<div class="tablebox"><input class="search" onkeyup="filterTable(this,'tableKeluar')" placeholder="🔍 Cari surat..."><table id="tableKeluar"><tr><th>No</th><th>Nomor Surat</th><th>Tujuan</th><th>Tanggal</th><th>Perihal</th><th>Status</th></tr>
-<tr><td>1</td><td>025/SK/2026</td><td>Inspektorat</td><td>16-09-2026</td><td>Pengiriman Dokumen</td><td><span class="badge green">Terkirim</span></td></tr>
-<tr><td>2</td><td>024/SK/2026</td><td>OPD terkait</td><td>14-09-2026</td><td>Undangan</td><td><span class="badge">Draft</span></td></tr></table></div></div>
+<section id="masuk" class="panel">
+<div class="topline"><div><h2>Surat Masuk</h2><div class="muted">Pencatatan surat yang diterima.</div></div><button onclick="toggle('formMasuk')">+ Tambah</button></div>
+<form id="formMasuk" class="form hidden" style="margin-top:15px" onsubmit="saveMasuk(event)">
+<input name="nomor" placeholder="Nomor surat" required><input name="tanggal" type="date" required>
+<input name="pengirim" placeholder="Pengirim" required><input name="perihal" placeholder="Perihal" required>
+<select name="sifat"><option>Biasa</option><option>Penting</option><option>Segera</option><option>Rahasia</option></select>
+<select name="status"><option>Diterima</option><option>Diproses</option><option>Selesai</option></select>
+<input class="full" name="keterangan" placeholder="Keterangan">
+<button class="full">Simpan Surat Masuk</button></form>
+<div id="tableMasuk"></div>
+</section>
 
-<div class="page" id="arsip"><div class="title"><h2>Arsip Dokumen</h2><button onclick="openModal('Arsip Dokumen')">+ Tambah Arsip</button></div>
-<div class="tablebox"><input class="search" onkeyup="filterTable(this,'tableArsip')" placeholder="🔍 Cari arsip..."><table id="tableArsip"><tr><th>No</th><th>Nama Dokumen</th><th>Kategori</th><th>Tahun</th><th>Format</th><th>Aksi</th></tr>
-<tr><td>1</td><td>Laporan Keuangan 2026</td><td>Keuangan</td><td>2026</td><td>PDF</td><td><button class="btn2">Buka</button></td></tr>
-<tr><td>2</td><td>Renja OPD 2026</td><td>Perencanaan</td><td>2026</td><td>PDF</td><td><button class="btn2">Buka</button></td></tr></table></div></div>
+<section id="keluar" class="panel hidden">
+<div class="topline"><div><h2>Surat Keluar</h2><div class="muted">Pencatatan surat yang dikeluarkan.</div></div><button onclick="toggle('formKeluar')">+ Tambah</button></div>
+<form id="formKeluar" class="form hidden" style="margin-top:15px" onsubmit="saveKeluar(event)">
+<input name="nomor" placeholder="Nomor surat" required><input name="tanggal" type="date" required>
+<input name="tujuan" placeholder="Tujuan" required><input name="perihal" placeholder="Perihal" required>
+<select name="sifat"><option>Biasa</option><option>Penting</option><option>Segera</option><option>Rahasia</option></select>
+<select name="status"><option>Draft</option><option>Dikirim</option><option>Selesai</option></select>
+<input class="full" name="keterangan" placeholder="Keterangan">
+<button class="full">Simpan Surat Keluar</button></form>
+<div id="tableKeluar"></div>
+</section>
 
-<div class="page" id="pegawai"><div class="title"><h2>Data Pegawai</h2><button onclick="openModal('Data Pegawai')">+ Tambah Pegawai</button></div>
-<div class="tablebox"><table><tr><th>No</th><th>Nama</th><th>NIP</th><th>Jabatan</th><th>Status</th></tr>
-<tr><td>1</td><td>Admin APSIP</td><td>—</td><td>Administrator</td><td><span class="badge green">Aktif</span></td></tr>
-<tr><td>2</td><td>Pegawai OPD</td><td>—</td><td>Pengelola Arsip</td><td><span class="badge green">Aktif</span></td></tr></table></div></div>
+<section id="arsip" class="panel hidden">
+<div class="topline"><div><h2>Arsip Dokumen</h2><div class="muted">Daftar arsip dan metadata dokumen.</div></div><button onclick="toggle('formArsip')">+ Tambah</button></div>
+<form id="formArsip" class="form hidden" style="margin-top:15px" onsubmit="saveArsip(event)">
+<input name="nama" placeholder="Nama dokumen" required><input name="kategori" placeholder="Kategori" required>
+<input name="tahun" type="number" value="2026" required><input name="nomor" placeholder="Nomor dokumen">
+<input name="file_name" placeholder="Nama file (opsional)"><input name="file_url" placeholder="Link file (opsional)">
+<input class="full" name="keterangan" placeholder="Keterangan">
+<button class="full">Simpan Arsip</button></form>
+<div id="tableArsip"></div>
+</section>
 
-<div class="page" id="laporan"><div class="title"><h2>Laporan</h2></div><div class="cards">
-<div class="card"><b>Laporan Surat Masuk</b><p class="muted">Rekap surat masuk berdasarkan periode.</p><button onclick="alert('Fitur cetak laporan demo')">Cetak Laporan</button></div>
-<div class="card"><b>Laporan Surat Keluar</b><p class="muted">Rekap surat keluar berdasarkan periode.</p><button onclick="alert('Fitur cetak laporan demo')">Cetak Laporan</button></div>
-<div class="card"><b>Laporan Arsip</b><p class="muted">Daftar dokumen yang tersimpan.</p><button onclick="alert('Fitur cetak laporan demo')">Cetak Laporan</button></div>
-</div></div>
-</section></main></div>
-
-<div class="modal" id="modal"><div class="modalbox"><h3 id="modalTitle">Tambah Data</h3><input placeholder="Nomor / Nama Dokumen"><input placeholder="Perihal / Keterangan"><input type="date"><div style="text-align:right"><button class="btn2" onclick="closeModal()">Batal</button> <button onclick="saveDemo()">Simpan</button></div></div></div>
+<section id="pegawai" class="panel hidden">
+<div class="topline"><div><h2>Data Pegawai</h2><div class="muted">Data pegawai yang dikelola APSIP.</div></div><button onclick="toggle('formPegawai')">+ Tambah</button></div>
+<form id="formPegawai" class="form hidden" style="margin-top:15px" onsubmit="savePegawai(event)">
+<input name="nama" placeholder="Nama pegawai" required><input name="nip" placeholder="NIP">
+<input name="jabatan" placeholder="Jabatan" required><select name="status"><option>Aktif</option><option>Nonaktif</option></select>
+<button class="full">Simpan Pegawai</button></form>
+<div id="tablePegawai"></div>
+</section>
+</div>
 
 <script>
-function login(){if(document.getElementById('username').value==='admin'&&document.getElementById('password').value==='admin123'){document.getElementById('login').style.display='none';document.getElementById('app').style.display='block'}else alert('Username atau password salah')}
-function logout(){document.getElementById('app').style.display='none';document.getElementById('login').style.display='flex'}
-function showPage(id,el){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.menu').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('pageTitle').textContent=el.textContent.trim().replace(/^[^\w]+/,'')}
-function openModal(t){document.getElementById('modalTitle').textContent='Tambah '+t;document.getElementById('modal').classList.add('show')}
-function closeModal(){document.getElementById('modal').classList.remove('show')}
-function saveDemo(){alert('Data berhasil disimpan (mode demo).');closeModal()}
-function filterTable(input,id){let q=input.value.toLowerCase();document.querySelectorAll('#'+id+' tr').forEach((r,i)=>{if(i>0)r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})}
+/* =========================
+   ISI 2 NILAI DI BAWAH INI
+   ========================= */
+const SUPABASE_URL = "TEMPEL_PROJECT_URL_DI_SINI";
+const SUPABASE_KEY = "TEMPEL_PUBLISHABLE_KEY_DI_SINI";
+
+const connection=document.getElementById("connection");
+function headers(){return {apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=representation"}}
+async function api(path,opt={}){const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...opt,headers:{...headers(),...(opt.headers||{})}});if(!r.ok)throw new Error(await r.text());return r.status===204?[]:r.json()}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function toggle(id){document.getElementById(id).classList.toggle("hidden")}
+function showTab(id,btn){document.querySelectorAll("section.panel").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));btn.classList.add("active")}
+async function count(table,id){let x=await api(table+"?select=id");document.getElementById(id).textContent=x.length}
+function table(data,cols,tableName){if(!data.length)return '<p class="muted">Belum ada data.</p>';return "<table><tr>"+cols.map(c=>"<th>"+c[1]+"</th>").join("")+"<th>Aksi</th></tr>"+data.map(r=>"<tr>"+cols.map(c=>"<td>"+esc(r[c[0]])+"</td>").join("")+`<td><button class="danger" onclick="del('${tableName}',${r.id})">Hapus</button></td></tr>`).join("")+"</table>"}
+async function load(){try{
+await Promise.all([count("surat_masuk","countMasuk"),count("surat_keluar","countKeluar"),count("arsip","countArsip"),count("pegawai","countPegawai")]);
+let m=await api("surat_masuk?select=*&order=created_at.desc");document.getElementById("tableMasuk").innerHTML=table(m,[["nomor","Nomor"],["tanggal","Tanggal"],["pengirim","Pengirim"],["perihal","Perihal"],["status","Status"]],"surat_masuk");
+let k=await api("surat_keluar?select=*&order=created_at.desc");document.getElementById("tableKeluar").innerHTML=table(k,[["nomor","Nomor"],["tanggal","Tanggal"],["tujuan","Tujuan"],["perihal","Perihal"],["status","Status"]],"surat_keluar");
+let a=await api("arsip?select=*&order=created_at.desc");document.getElementById("tableArsip").innerHTML=table(a,[["nama","Nama"],["kategori","Kategori"],["tahun","Tahun"],["nomor","Nomor"]],"arsip");
+let p=await api("pegawai?select=*&order=created_at.desc");document.getElementById("tablePegawai").innerHTML=table(p,[["nama","Nama"],["nip","NIP"],["jabatan","Jabatan"],["status","Status"]],"pegawai");
+connection.textContent="● Terhubung"; connection.style.color="#b7f7c6";
+}catch(e){connection.textContent="● Belum terhubung";connection.style.color="#ffd2d2";console.error(e)}}
+async function insert(tableName,obj,formId){try{await api(tableName,{method:"POST",body:JSON.stringify(obj)});document.getElementById(formId).reset();await load();alert("Data berhasil disimpan.");}catch(e){alert("Gagal menyimpan. Periksa URL/Publishable Key dan database Supabase.");console.error(e)}}
+function dataForm(id){return Object.fromEntries(new FormData(document.getElementById(id)))}
+function saveMasuk(e){e.preventDefault();insert("surat_masuk",dataForm("formMasuk"),"formMasuk")}
+function saveKeluar(e){e.preventDefault();insert("surat_keluar",dataForm("formKeluar"),"formKeluar")}
+function saveArsip(e){e.preventDefault();insert("arsip",dataForm("formArsip"),"formArsip")}
+function savePegawai(e){e.preventDefault();insert("pegawai",dataForm("formPegawai"),"formPegawai")}
+async function del(t,id){if(!confirm("Hapus data ini?"))return;try{await api(t+"?id=eq."+id,{method:"DELETE"});await load()}catch(e){alert("Gagal menghapus data.")}}
+load();
 </script>
 </body></html>
