@@ -115,13 +115,22 @@ button:hover{opacity:.9}.app{display:none}.sidebar{position:fixed;left:0;top:0;b
 </div></div>
 </section></main></div>
 
-<div class="modal" id="modal"><div class="modalbox"><h3 id="modalTitle">Tambah Data</h3><input placeholder="Nomor / Nama Dokumen"><input placeholder="Perihal / Keterangan"><input type="date"><div style="text-align:right"><button class="btn2" onclick="closeModal()">Batal</button> <button onclick="saveDemo()">Simpan</button></div></div></div>
+<div class="modal" id="modal">
+<div class="modalbox">
+<h3 id="modalTitle">Tambah Surat Masuk</h3>
+<input id="smNomor" placeholder="Nomor Surat">
+<input id="smPengirim" placeholder="Pengirim">
+<input id="smTanggal" type="date">
+<input id="smPerihal" placeholder="Perihal">
+<select id="smStatus"><option value="Diterima">Diterima</option><option value="Diproses">Diproses</option></select>
+<div style="text-align:right"><button class="btn2" onclick="closeModal()">Batal</button> <button onclick="saveSuratMasuk()">Simpan</button></div>
+</div></div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://olntporrajhaibzbzxyc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_bVKkS4woc0sDk8qByBNrFw_2j2d3-Yn";
+const SUPABASE_KEY = "ISI_PUBLISHABLE_KEY_KAMU_DI_SINI";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function msg(id,text,ok=false){
@@ -178,6 +187,7 @@ async function enterApp(user){
   document.getElementById("currentUser").textContent="👤 "+nama+" ("+(role==="admin"?"Admin":"Peserta")+")";
   document.querySelectorAll(".admin-only").forEach(x=>x.style.display=role==="admin"?"block":"none");
   loadADD();
+  loadSuratMasuk();
   if(role==="admin")loadUsers();
 }
 async function logout(){
@@ -194,9 +204,52 @@ function showPage(id,el){
   if(el)el.classList.add("active");
   document.getElementById("pageTitle").textContent=el?el.textContent.trim().replace(/^[^\w]+/,""):id;
 }
-function openModal(t){document.getElementById("modalTitle").textContent="Tambah "+t;document.getElementById("modal").classList.add("show")}
+function openModal(t){
+  document.getElementById("modalTitle").textContent="Tambah "+t;
+  if(t==="Surat Masuk"){
+    smNomor.value="";smPengirim.value="";smTanggal.value=new Date().toISOString().slice(0,10);
+    smPerihal.value="";smStatus.value="Diterima";
+  }
+  document.getElementById("modal").classList.add("show");
+}
 function closeModal(){document.getElementById("modal").classList.remove("show")}
 function filterTable(input,id){const q=input.value.toLowerCase();document.querySelectorAll("#"+id+" tr").forEach((r,i)=>{if(i>0)r.style.display=r.textContent.toLowerCase().includes(q)?"":"none"})}
+
+async function saveSuratMasuk(){
+  const p={
+    nomor_surat:smNomor.value.trim(),
+    pengirim:smPengirim.value.trim(),
+    tanggal:smTanggal.value,
+    perihal:smPerihal.value.trim(),
+    status:smStatus.value
+  };
+  if(!p.nomor_surat||!p.pengirim||!p.tanggal||!p.perihal){
+    alert("Nomor surat, pengirim, tanggal, dan perihal wajib diisi.");
+    return;
+  }
+  const {error}=await sb.from("surat_masuk").insert(p);
+  if(error){
+    alert("Gagal menyimpan Surat Masuk: "+error.message);
+    console.error(error);
+    return;
+  }
+  closeModal();
+  await loadSuratMasuk();
+  alert("Surat Masuk berhasil disimpan.");
+}
+async function loadSuratMasuk(){
+  const table=document.getElementById("tableMasuk");
+  if(!table)return;
+  const {data,error}=await sb.from("surat_masuk").select("*").order("tanggal",{ascending:false});
+  if(error){console.error(error);return;}
+  let body=table.querySelector("tbody");
+  if(!body){
+    body=document.createElement("tbody");
+    table.appendChild(body);
+  }
+  body.innerHTML=(data||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.nomor_surat||""}</td><td>${x.pengirim||""}</td><td>${x.tanggal||""}</td><td>${x.perihal||""}</td><td><span class="badge ${x.status==="Diterima"?"green":"yellow"}">${x.status||"Diterima"}</span></td><td><button class="btn2">Lihat</button></td></tr>`).join("");
+  const c=document.getElementById("countMasuk");if(c)c.textContent=(data||[]).length;
+}
 
 async function loadUsers(){
   const b=document.getElementById("bodyUsers");if(!b)return;
